@@ -1,8 +1,8 @@
 #! /bin/bash
 
 #GLOBAL VARIABLES
-STUDENT_ID=201002182
-PASSWORD="soikat6897"
+$STUDENT_ID
+$PASSWORD
 $STUDENT_NAME
 $IS_LOGGED_IN
 
@@ -42,6 +42,11 @@ playground() {
 #Utility Functions
 #------------------------------------------------
 
+installDependencies() {
+    wget -O htmlq.tar.gz https://github.com/mgdm/htmlq/releases/latest/download/htmlq-x86_64-linux.tar.gz
+    sudo tar xf htmlq.tar.gz -C /usr/local/bin
+    htmlq --version
+}
 #text file read
 readTextFile() {
     input=./$1
@@ -198,11 +203,7 @@ searchByShortName() {
     done
 }
 
-installDependencies() {
-    wget -O htmlq.tar.gz https://github.com/mgdm/htmlq/releases/latest/download/htmlq-x86_64-linux.tar.gz
-    sudo tar xf htmlq.tar.gz -C /usr/local/bin
-    htmlq --version
-}
+
 
 teacherPortal() {
 
@@ -452,10 +453,10 @@ fi
 main_menu() {
     echo -e "\n[1]-Teacher Information"
     echo "[2]-Student Portal"
-    echo "[3]-Install Dependecies"
-    echo "[4]-Generate Faculty Profile link"
-    echo "[5]-Exit"
-    echo "[6]-Playground"
+    echo "[3]-Exit"
+    if [ "$(which htmlq)" == "" ]; then
+        echo "[4]-Install Dependecies"
+    fi
     read main_menu
 
     if [ "$main_menu" == 1 ]; then
@@ -463,17 +464,10 @@ main_menu() {
     elif [ "$main_menu" == 2 ]; then
         studentPortal
     elif [ "$main_menu" == 3 ]; then
-        installDependencies
-    elif [ "$main_menu" == 4 ]; then
-        searchFacProfile
-    elif [ "$main_menu" == 6 ]; then
-        playground
-    elif [ "$main_menu" == 5 ]; then
-        #remove everything belonsg if logged in
-        deleteCachedFile
-
         echo "Happy scraping! Thank You for using me <3 "
         exit
+    elif [ "$main_menu" == 4 ]; then
+        installDependencies
     fi
 }
 
