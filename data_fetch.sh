@@ -1,10 +1,42 @@
 #! /bin/bash
 
 #GLOBAL VARIABLES
-$STUDENT_ID
-$PASSWORD
+STUDENT_ID=201002182
+PASSWORD="soikat6897"
 $STUDENT_NAME
 $IS_LOGGED_IN
+
+#color variables
+bold=$(echo -en "\e[1m")
+underline=$(echo -en "\e[4m")
+dim=$(echo -en "\e[2m")
+strickthrough=$(echo -en "\e[9m")
+blink=$(echo -en "\e[5m")
+reverse=$(echo -en "\e[7m")
+hidden=$(echo -en "\e[8m")
+normal=$(echo -en "\e[0m")
+black=$(echo -en "\e[30m")
+red=$(echo -en "\e[31m")
+green=$(echo -en "\e[32m")
+orange=$(echo -en "\e[33m")
+blue=$(echo -en "\e[34m")
+purple=$(echo -en "\e[35m")
+aqua=$(echo -en "\e[36m")
+
+white=$(echo -en "\e[97m")
+default=$(echo -en "\e[39m")
+BLACK=$(echo -en "\e[40m")
+RED=$(echo -en "\e[41m")
+GREEN=$(echo -en "\e[42m")
+ORANGE=$(echo -en "\e[43m")
+BLUE=$(echo -en "\e[44m")
+
+WHITE=$(echo -en "\e[107m")
+DEFAULT=$(echo -en "\e[49m")
+
+playground() {
+    echo $bold $green RED $GREEN$white\This is black with red background $underline\this is underlined$normal\normal
+}
 
 #------------------------------------------------
 #Utility Functions
@@ -79,7 +111,7 @@ searchByShortName() {
     fi
     full_name=$(sed -n $line_num"p" shortList.txt | cut -f1 -d"=")
     echo -e "\n---------------------------------------------"
-    echo -e "\nFull Name: $full_name"
+    echo -e "\nFull Name: $BLUE$white $full_name $normal"
     echo "Profile Link is: $link"
 
     #teachers profile download locally if not exists
@@ -96,7 +128,7 @@ searchByShortName() {
     #teachers info menu
     #------------------------------------------------
     while [ "$choose_option" != 6 ]; do
-        echo -e "\nDo you want to know more about $full_name?"
+        echo -e "\nDo you want to know more about $aqua $full_name $normal?"
         echo "[1]-Education"
         echo "[2]-Experience"
         echo "[3]-Publication"
@@ -192,8 +224,8 @@ teacherPortal() {
 #---------------------------------------
 #End of teachers section
 #----------------------------------------
-deleteCachedFile(){
-        #remove everything belonsg if cached file exists
+deleteCachedFile() {
+    #remove everything belonsg if cached file exists
     checkProfileHtml="./profile.html"
     if test -f "$checkProfileHtml"; then
         rm ./profile.html
@@ -225,18 +257,22 @@ checkBillingStatus() {
 
         if test -f "$checkBillFileExists"; then
             echo -e "\n..................................................\n"
-            htmlq -p "#cleContent .uwp-h2 font" --text <bill.html
-            htmlq -p "#cleContent  .uwp-noborder" -w --text <bill.html
-            echo -e "..................................................\n"
+            total_outstanding=$(htmlq -p "#cleContent .uwp-h2 font" --text <bill.html)
+            echo  $RED$white $total_outstanding $normal
+            payable_paid=$(htmlq -p "#cleContent  .uwp-noborder" -w --text <bill.html)
+            echo $BLUE$white $payable_paid $normal
+            echo -e "\n..................................................\n"
         else
             echo -e "\n................................................."
             echo "Extracting bill status..."
             curl -s -X POST -F "studentID=$STUDENT_ID" -F "password=$PASSWORD" http://portal.green.edu.bd:81/Billing.php >>bill.html
 
             echo -e "\n..................................................\n"
-            htmlq -p "#cleContent .uwp-h2 font" --text <bill.html
-            htmlq -p "#cleContent  .uwp-noborder" -w --text <bill.html
-            echo -e "..................................................\n"
+            total_outstanding=$(htmlq -p "#cleContent .uwp-h2 font" --text <bill.html)
+            echo $red $bold $total_outstanding $normal
+            payable_paid=$(htmlq -p "#cleContent  .uwp-noborder" -w --text <bill.html)
+            echo $blue $payable_paid $normal
+            echo -e "\n..................................................\n"
         fi
         studentPortal
     fi
@@ -325,8 +361,6 @@ studentPortalLogin() {
     studentPortal
 }
 
-
-
 studentPortalLogout() {
     IS_LOGGED_IN="false"
     STUDENT_NAME=""
@@ -385,7 +419,7 @@ studentPortal() {
     if [ -z "${STUDENT_ID}" ] && [ -z "${PASSWORD}" ]; then
         echo "[4]-Login"
     else
-        echo "[4]-Welcome, $STUDENT_NAME! Want to Logout?"
+        echo "[4]-Welcome, $bold $green $STUDENT_NAME!$normal Want to Logout?"
     fi
 
     echo "[5]-Back"
@@ -414,10 +448,6 @@ if [ ! -d "assets" ]; then
     mkdir assets
     mkdir -p assets/teachers
 fi
-
-playground() {
-    echo "Md. Abu Rumman Refat = MARR" | cut -f1 -d"="
-}
 
 main_menu() {
     echo -e "\n[1]-Teacher Information"
