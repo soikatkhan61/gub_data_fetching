@@ -5,34 +5,25 @@ $STUDENT_ID
 $PASSWORD
 $STUDENT_NAME
 $IS_LOGGED_IN
+RETURN_URL="unset"
 
 #color variables
 bold=$(echo -en "\e[1m")
 underline=$(echo -en "\e[4m")
-dim=$(echo -en "\e[2m")
-strickthrough=$(echo -en "\e[9m")
+
 blink=$(echo -en "\e[5m")
-reverse=$(echo -en "\e[7m")
-hidden=$(echo -en "\e[8m")
+
 normal=$(echo -en "\e[0m")
-black=$(echo -en "\e[30m")
+
 red=$(echo -en "\e[31m")
 green=$(echo -en "\e[32m")
-orange=$(echo -en "\e[33m")
 blue=$(echo -en "\e[34m")
-purple=$(echo -en "\e[35m")
 aqua=$(echo -en "\e[36m")
 
 white=$(echo -en "\e[97m")
-default=$(echo -en "\e[39m")
-BLACK=$(echo -en "\e[40m")
 RED=$(echo -en "\e[41m")
 GREEN=$(echo -en "\e[42m")
-ORANGE=$(echo -en "\e[43m")
 BLUE=$(echo -en "\e[44m")
-
-WHITE=$(echo -en "\e[107m")
-DEFAULT=$(echo -en "\e[49m")
 
 playground() {
     echo $bold $green RED $GREEN$white\This is black with red background $underline\this is underlined$normal\normal
@@ -57,60 +48,86 @@ readTextFile() {
 
 #search faculty profile
 searchFacProfile() {
-    fetch_complete=0
-    for ((i = 1; i <= 7; i++)); do
-        if (($i == 1)); then
-            curl -s https://green.edu.bd/faculty-profile-dept/dept-of-cse/ | htmlq --pretty '.profile-faculty' a -a href | uniq >>fac_link.txt
-            fetch_complete=$((fetch_complete + $((100 / 7))))
-            echo "Fetching $fetch_complete %"
-        else
-            curl -s https://green.edu.bd/faculty-profile-dept/dept-of-cse/page/$i | htmlq --pretty '.profile-faculty' a -a href | uniq >>fac_link.txt
-            fetch_complete=$((fetch_complete + $((100 / $i))))
-            echo "Fetching $fetch_complete %"
-        fi
-    done
+
+    #if faculty profile link not exist then generate it first
+    fac_link=./fac_link.txt
+    if test -f "$fac_link"; then
+        echo -e "\nFaculty link generated...."
+    else
+        fetch_complete=0
+        for ((i = 1; i <= 7; i++)); do
+            if (($i == 1)); then
+                curl -s https://green.edu.bd/faculty-profile-dept/dept-of-cse/ | htmlq --pretty '.profile-faculty' a -a href | uniq >>fac_link.txt
+                echo "Fetching..."
+            else
+                curl -s https://green.edu.bd/faculty-profile-dept/dept-of-cse/page/$i | htmlq --pretty '.profile-faculty' a -a href | uniq >>fac_link.txt
+                echo "Fetching...."
+            fi
+        done
+    fi
+
 }
 
 genarateShortNameList() {
-    echo "Please Wait...Working on generating short list...."
-    for ((i = 1; i <= 7; i++)); do
-        if (($i == 1)); then
-            curl -s https://green.edu.bd/faculty-profile-dept/dept-of-cse/ | htmlq '.faculty-profile' div '.title' --text >>fac.html
-        else
-            curl -s https://green.edu.bd/faculty-profile-dept/dept-of-cse/page/$i | htmlq '.faculty-profile' div '.title' --text >>fac.html
-            echo "Fetching.."
+    #if shortlist not exist then generate it first
+    shortList=./shortList.txt
+    if test -f "$shortList"; then
+        echo -e '\n'
+        read -p 'In your machine shortlist already exists! Want to read? [y/n]' ans
+        if [ "$ans" == "Y" ] || [ "$ans" == "y" ]; then
+            readTextFile "shortList.txt"
         fi
+    else
+        echo -e "\nPlease Wait...Working on generating short list....\n"
+        for ((i = 1; i <= 7; i++)); do
+            if (($i == 1)); then
+                curl -s https://green.edu.bd/faculty-profile-dept/dept-of-cse/ | htmlq '.faculty-profile' div '.title' --text >>fac.html
+            else
+                curl -s https://green.edu.bd/faculty-profile-dept/dept-of-cse/page/$i | htmlq '.faculty-profile' div '.title' --text >>fac.html
+                echo "Fetching.."
+            fi
 
-        input="./fac.html"
-        while IFS= read -r line; do
-            echo -n "$line = " >>shortList.txt
-            for word in $line; do
-                if [[ $word == "Prof." || $word == "Dr." || $word == "Ms." || $word == "Mr." ]]; then
-                    continue
-                fi
-                echo -n "${word:0:1}" >>shortList.txt
-            done
+            input="./fac.html"
+            while IFS= read -r line; do
+                echo -n "$line = " >>shortList.txt
+                for word in $line; do
+                    if [[ $word == "Prof." || $word == "Dr." || $word == "Ms." || $word == "Mr." ]]; then
+                        continue
+                    fi
+                    echo -n "${word:0:1}" >>shortList.txt
+                done
 
-            echo -e >>shortList.txt
-        done <"$input"
+                echo -e >>shortList.txt
+            done <"$input"
 
-        rm ./fac.html
-    done
+            rm ./fac.html
+        done
+    fi
+
 }
 
 #search by short name of a teacher and can be extract all the information about their
 searchByShortName() {
     read -p "Enter the short form: " name
 
-    line_num=$(grep -n -w "$name" shortList.txt | tr -dc '0-9')
+    #if shortlist not exist then generate it first
+    shortList=./shortList.txt
+    if test -f "$shortList"; then
+        line_num=$(grep -n -w "$name" shortList.txt | tr -dc '0-9')
+    else
+        genarateShortNameList
+        line_num=$(grep -n -w "$name" shortList.txt | tr -dc '0-9')
+    fi
+
+    #generate faculty profile link
     link=null
     FILE=./fac_link.txt
 
     if test -f "$FILE"; then
         link=$(sed -n $line_num"p" fac_link.txt)
     else
-        echo "Fac link not exists"
-        echo "Please Wait! Fething faculty profile..."
+        echo -e "\nFac link not exists"
+        echo -e "\nPlease Wait! Fething faculty profile..."
         searchFacProfile
         link=$(sed -n $line_num"p" fac_link.txt)
     fi
@@ -122,10 +139,10 @@ searchByShortName() {
     #teachers profile download locally if not exists
     checkTeacherProfileLocally="./assets/teachers/$name.html"
     if test -f "$checkTeacherProfileLocally"; then
-        echo "All the file are already download in your machine"
+        echo "All the file belongs to $full_name are already downloaded in your machine"
     else
         curl -s $link >>./assets/teachers/$name.html
-        echo "All the info belongs to $name is downloaded :)) happy scraping !"
+        echo "All the info belongs to $full_name is downloaded :)) happy scraping !"
     fi
     echo -e "\n----------------------------------------------\n"
 
@@ -133,7 +150,7 @@ searchByShortName() {
     #teachers info menu
     #------------------------------------------------
     while [ "$choose_option" != 6 ]; do
-        echo -e "\nDo you want to know more about $aqua $full_name $normal?"
+        echo -e "\nDo you want to know more about $green $full_name $normal?"
         echo "[1]-Education"
         echo "[2]-Experience"
         echo "[3]-Publication"
@@ -201,9 +218,8 @@ searchByShortName() {
         fi
 
     done
+    teacherPortal
 }
-
-
 
 teacherPortal() {
 
@@ -214,6 +230,7 @@ teacherPortal() {
     if [ "$option" == 1 ]; then
         genarateShortNameList
         readTextFile "shortList.txt"
+        teacherPortal
     elif [ "$option" == 2 ]; then
         searchByShortName
     elif [ "$option" == 3 ]; then
@@ -225,6 +242,7 @@ teacherPortal() {
 #---------------------------------------
 #End of teachers section
 #----------------------------------------
+
 deleteCachedFile() {
     #remove everything belonsg if cached file exists
     checkProfileHtml="./profile.html"
@@ -248,10 +266,23 @@ deleteCachedFile() {
     fi
 }
 
+showLoggedInWarning() {
+    echo -e "\n"
+    echo $blink$RED$white"You dont set your student id,password yet!" $normal
+    echo -e "\n"
+}
+
 checkBillingStatus() {
+    RETURN_URL="unset"
     if [ -z "${STUDENT_ID}" ] && [ -z "${PASSWORD}" ]; then
-        echo "You dont set your student id,password yet! "
-        studentPortalLogin
+        RETURN_URL="bill"
+        showLoggedInWarning
+
+        echo -e "\n"
+        read -p"Want to login? [y/n]" ans
+        if [ "$ans" == "Y" ] || [ "$ans" == "y" ]; then
+            studentPortalLogin
+        fi
     else
 
         checkBillFileExists=./bill.html
@@ -259,7 +290,7 @@ checkBillingStatus() {
         if test -f "$checkBillFileExists"; then
             echo -e "\n..................................................\n"
             total_outstanding=$(htmlq -p "#cleContent .uwp-h2 font" --text <bill.html)
-            echo  $RED$white $total_outstanding $normal
+            echo $RED$white "$total_outstanding" $normal
             payable_paid=$(htmlq -p "#cleContent  .uwp-noborder" -w --text <bill.html)
             echo $BLUE$white $payable_paid $normal
             echo -e "\n..................................................\n"
@@ -275,13 +306,13 @@ checkBillingStatus() {
             echo $blue $payable_paid $normal
             echo -e "\n..................................................\n"
         fi
-        studentPortal
     fi
+    studentPortal
 
 }
 
 checkResult() {
-
+    RETURN_URL="unset"
     askForFullResult() {
         read -p "Want to get full result[y/n]" ans
         if [ $ans == "Y" ] || [ $ans == "y" ]; then
@@ -290,8 +321,14 @@ checkResult() {
     }
 
     if [ -z "${STUDENT_ID}" ] && [ -z "${PASSWORD}" ]; then
-        echo "You dont set your student id,password yet! "
-        studentPortalLogin
+        RETURN_URL="result"
+        showLoggedInWarning
+
+        echo -e "\n"
+        read -p"Want to login? [y/n]" ans
+        if [ "$ans" == "Y" ] || [ "$ans" == "y" ]; then
+            studentPortalLogin
+        fi
     else
 
         checkResultExists=./result.html
@@ -315,14 +352,21 @@ checkResult() {
             echo -e "..................................................\n"
             askForFullResult
         fi
-        studentPortal
     fi
+    studentPortal
 }
 
 profileInfoExtract() {
+    RETURN_URL="unset"
     if [ -z "${STUDENT_ID}" ] && [ -z "${PASSWORD}" ]; then
-        echo "You dont set your student id,password yet! "
-        studentPortalLogin
+        RETURN_URL="profile"
+        showLoggedInWarning
+
+        echo -e "\n"
+        read -p"Want to login? [y/n]" ans
+        if [ "$ans" == "Y" ] || [ "$ans" == "y" ]; then
+            studentPortalLogin
+        fi
     else
 
         checkProfileExists=./profile.html
@@ -340,8 +384,9 @@ profileInfoExtract() {
             htmlq -p "#cleContent tr" -w -t <profile.html
             echo -e "..................................................\n"
         fi
-        studentPortal
     fi
+    studentPortal
+
 }
 studentPortalLogin() {
 
@@ -355,10 +400,22 @@ studentPortalLogin() {
     htmlq -p "#cleContent tr" -w -t <profile.html >>profile.txt
     STUDENT_NAME=$(sed -n 3p profile.txt)
     #extracting student name ends here
+
     echo "ID and Password is set!"
     echo ".............................."
+
     IS_LOGGED_IN="true"
-    echo $IS_LOGGED_IN
+
+    #redirecting to return url where the user comes from
+    if [ "${RETURN_URL}" != "unset" ]; then
+        if [ $RETURN_URL == "bill" ]; then
+            checkBillingStatus
+        elif [ $RETURN_URL == "result" ]; then
+            checkResult
+        elif [ $RETURN_URL == "profile" ]; then
+            profileInfoExtract
+        fi
+    fi
     studentPortal
 }
 
@@ -368,10 +425,12 @@ studentPortalLogout() {
     STUDENT_ID=""
     PASSWORD=""
 
+    echo -e 'Working on logout..wait a seconds....\n'
+
     #remove everything belonsg to logged id
     checkProfileHtml="./profile.html"
     if test -f "$checkProfileHtml"; then
-        echo "Deleting Profile..."
+        echo $red"Deleting Profile..."
         rm ./profile.html
     else
         echo "Deleting Profile..."
@@ -382,7 +441,7 @@ studentPortalLogout() {
         echo "Deleting result.html..."
         rm ./result.html
     else
-        echo "Deleting result.html..."
+        echo $red"Deleting result.html..."
     fi
 
     checkBilltHtml="./bill.html"
@@ -398,21 +457,23 @@ studentPortalLogout() {
         echo "Deleting profile.txt..."
         rm ./profile.txt
     else
-        echo "Deleting profile.txt..."
+        echo "Deleting profile.txt..."$normal
     fi
+
+    echo -e "\n"
+    echo "$green""$bold"'Logout complete!'"$normal"
 
     studentPortal
 }
 
 checkLoggedIn() {
     if [ -z "${STUDENT_ID}" ] && [ -z "${PASSWORD}" ]; then
-        echo "You dont set your student id,password yet! "
+        showLoggedInWarning
         studentPortalLogin
     fi
 }
 
 studentPortal() {
-
     echo -e "\n"
     echo "[1]-Billing Status"
     echo "[2]-Result"
@@ -455,7 +516,7 @@ main_menu() {
     echo "[2]-Student Portal"
     echo "[3]-Exit"
     if [ "$(which htmlq)" == "" ]; then
-        echo "[4]-Install Dependecies"
+        echo $blink$RED$white"[4]-Install Dependencies First" $normal
     fi
     read main_menu
 
